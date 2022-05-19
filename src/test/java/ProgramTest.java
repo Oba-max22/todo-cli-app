@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -27,7 +28,8 @@ class ProgramTest {
 
     @Test
     void shouldFindTodoById() {
-        assertEquals(todo, Program.findTodoById(2, todoList));
+        Optional<Todo> expectedTodo = Program.findTodoById(2, todoList);
+        expectedTodo.ifPresent(value -> assertEquals(todo, value));
     }
 
     @Test
