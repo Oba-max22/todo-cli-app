@@ -8,59 +8,32 @@ import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.Scanner;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class Program {
     public static Gson gson = new Gson();
     public static long todoLength = 0;
-    public static int operation = -1;
+    public static String command;
 
     public static void main(String[] args) {
-        DisplayWelcomeMessage();
+        command = args[0];
 
-        while(operation != 0) {
-            RunProgram();
-        }
-
-        DisplayExitMessage();
-    }
-
-    public static void RunProgram() {
-        System.out.println("What operation would you like to perform?");
-        System.out.println("1 - LIST");
-        System.out.println("2 - ADD");
-        System.out.println("3 - DELETE");
-        System.out.println("4 - COMPLETE");
-        System.out.println("0 - END SESSION");
-
-        try {
-            Scanner scanner = new Scanner(System.in);
-            operation = scanner.nextInt();
-        } catch (NumberFormatException e) {
-            System.out.println("Ensure that you enter a number.");
-        }
-
-        switch (operation) {
-            case 1:
+        switch (command) {
+            case "-l":
                 ListTodo();
-                System.out.println("****   List completed    ****");
                 break;
-            case 2:
-                AddTodo();
-                System.out.println("****    Add completed    ****");
+            case "-a":
+                AddTodo(args[1]);
                 break;
-            case 3:
-                DeleteTodo();
-                System.out.println("****   Delete completed    ****");
+            case "-d":
+                DeleteTodo(args[1]);
                 break;
-            case 4:
-                CompleteTodo();
-                System.out.println("****    Marked as done    ****");
+            case "-c":
+                CompleteTodo(args[1]);
             default:
                 break;
         }
-
     }
 
     public static void ListTodo() {
@@ -68,6 +41,7 @@ public class Program {
             Reader reader = Files.newBufferedReader(Paths.get("src/main/resources/todolist.json"));
             Type listType = new TypeToken<List<Todo>>(){}.getType();
             List<Todo> todos = new Gson().fromJson(reader, listType);
+
 
             DisplayList(todos);
 
@@ -80,11 +54,8 @@ public class Program {
         }
     }
 
-    public static void AddTodo() {
-        System.out.println("Please enter TODO title : ");
-        Scanner scan = new Scanner(System.in);
-        String title = scan.nextLine();
-        if (!title.isEmpty()) {
+    public static void AddTodo(String subCommand) {
+        if (!subCommand.isEmpty()) {
             try {
                 Reader reader = Files.newBufferedReader(Paths.get("src/main/resources/todolist.json"));
                 Type listType = new TypeToken<List<Todo>>(){}.getType();
@@ -96,7 +67,7 @@ public class Program {
                     todoLength = todos.get(todos.size()-1).getId();
                 }
                 todoLength++;
-                Todo newTodo = new Todo(todoLength, title, false);
+                Todo newTodo = new Todo(todoLength, subCommand, false);
                 todos.add(newTodo);
 
                 gson.toJson(todos, fileWriter);
@@ -109,10 +80,8 @@ public class Program {
         }
     }
 
-    public static void DeleteTodo() {
-        System.out.println("Please enter id of todo: ");
-        Scanner scan = new Scanner(System.in);
-        int id = scan.nextInt();
+    public static void DeleteTodo(String subCommand) {
+        int id = Integer.parseInt(subCommand);
         try {
             Reader reader = Files.newBufferedReader(Paths.get("src/main/resources/todolist.json"));
             Type listType = new TypeToken<List<Todo>>(){}.getType();
@@ -120,8 +89,14 @@ public class Program {
 
             FileWriter fileWriter = new FileWriter("src/main/resources/todolist.json");
 
-            Todo todo = findTodoById(id, todos);
-            todos.remove(todo);
+            if(!todos.isEmpty()) {
+                Optional<Todo> todo = findTodoById(id, todos);
+                if (todo != null) {
+                    todo.ifPresent(todos::remove);
+                }
+            } else {
+                System.out.println("Todo is empty!");
+            }
 
             gson.toJson(todos, fileWriter);
 
@@ -132,14 +107,18 @@ public class Program {
         }
     }
 
-    public static Todo findTodoById(int id, List<Todo> todos) {
-        return todos.stream().filter((todo) -> todo.getId() == id).collect(Collectors.toList()).get(0);
+    public static Optional<Todo> findTodoById(int id, List<Todo> todos) {
+        Optional<Todo> fetchedTodo = Optional.empty();
+        try{
+            fetchedTodo = Optional.ofNullable(todos.stream().filter((todo) -> todo.getId() == id).collect(Collectors.toList()).get(0));
+        } catch (Exception e) {
+            System.out.println("Todo not found!");
+        }
+        return fetchedTodo;
     }
 
-    public static void CompleteTodo() {
-        System.out.println("Please enter id of todo: ");
-        Scanner scan = new Scanner(System.in);
-        int id = scan.nextInt();
+    public static void CompleteTodo(String subCommand) {
+        int id = Integer.parseInt(subCommand);
         try {
             Reader reader = Files.newBufferedReader(Paths.get("src/main/resources/todolist.json"));
             Type listType = new TypeToken<List<Todo>>(){}.getType();
@@ -169,18 +148,12 @@ public class Program {
 
     public static void DisplayList(List<Todo> todos) {
         System.out.println();
-        System.out.println("S/N " + "COMPLETED " + "TITLE");
-        for (Todo todo : todos) {
-            System.out.println(todo.getId() + "   " + todo.isCompleted() + "      " + todo.getTitle());
+        System.out.println("ID" + "  " + "DONE"+ "   " + "TITLE");
+        if (todos != null) {
+            for (Todo todo : todos) {
+                System.out.println(todo.getId() + "   " + todo.isCompleted() + "  " + todo.getTitle());
+            }
         }
         System.out.println();
-    }
-
-    public static void DisplayWelcomeMessage() {
-        System.out.println("****    TODO CLI APP    ****");
-    }
-
-    public static void DisplayExitMessage() {
-        System.out.println("****    Thank you for using TODO CLI APP.    ****");
     }
 }
