@@ -56,7 +56,7 @@ public class Program {
                 break;
             case 4:
                 CompleteTodo();
-                System.out.println("****    Marked as done completed    ****");
+                System.out.println("****    Marked as done    ****");
             default:
                 break;
         }
